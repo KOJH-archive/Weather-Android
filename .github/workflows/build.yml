@@ -21,25 +21,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install Flet
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libsqlite3-dev libffi-dev libssl-dev cmake autoconf automake libtool pkg-config unzip zip
           pip install --upgrade pip
-          pip install buildozer cython==0.29.37 flet
+          pip install flet
 
-      - name: Build with Buildozer
+      - name: Build APK with Flet
         run: |
-          # We'll use the 'yes' command to accept licenses.
-          yes | buildozer android debug
-        env:
-          BUILD_ANDROID_SDK: 33
-          BUILD_ANDROID_NDK: 25.2.9519653
+          flet build apk -vv
 
       - name: Upload APK
         uses: actions/upload-artifact@v6
         with:
           name: weather-insight-apk
-          path: bin/*.apk
+          path: build/apk/app-release.apk
