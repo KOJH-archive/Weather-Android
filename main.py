@@ -143,12 +143,18 @@ def get_ai_summary(w_data, air_data=None):
     """Android AICore 연동 (시뮬레이션)"""
     try:
         temp = w_data.get("TMP", "--")
-        dust = air_data.get("pm10Value", "--") if air_data else "--"
-        summary = f"현재 기온 {temp}°C로 쾌적하며, 미세먼지는 {dust}㎍/㎥로 "
-        summary += "실외 활동하기 좋습니다." if dust != "--" and int(dust) < 50 else "마스크 착용을 권장합니다."
-        return summary
-    except:
-        return "실시간 날씨와 대기질을 분석하여 최적의 인사이트를 생성 중입니다."
+        dust_val = air_data.get("pm10Value", "--") if air_data else "--"
+        
+        # 안전한 숫자 변환
+        try:
+            dust_int = int(dust_val)
+            status = "실외 활동하기 좋습니다." if dust_int < 50 else "마스크 착용을 권장합니다."
+        except (ValueError, TypeError):
+            status = "현재 공기질 정보를 확인 중입니다."
+            
+        return f"현재 기온 {temp}°C로 쾌적하며, 미세먼지는 {dust_val}㎍/㎥입니다. {status}"
+    except Exception as e:
+        return f"데이터를 분석하는 중입니다: 실시간 생활 가이드를 생성하고 있습니다."
 
 # --- UI COMPONENTS ---
 class PremiumCard(ft.Container):

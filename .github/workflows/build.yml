@@ -12,6 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -20,19 +26,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libffi-dev python3-dev
+          sudo apt-get install -y build-essential git ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libsqlite3-dev libffi-dev libssl-dev cmake automake libtool
           pip install --upgrade pip
-          pip install buildozer flet
+          pip install buildozer cython==0.29.37 flet
 
       - name: Build with Buildozer
         run: |
-          # Buildozer needs a local SDK/NDK setup which can be slow. 
-          # Using a dedicated action might be faster, but this is the transparent way.
           # We'll use the 'yes' command to accept licenses.
           yes | buildozer android debug
         env:
-          # Buildozer needs several environment variables and tools
-          # Some might be pre-installed on ubuntu-latest
           BUILD_ANDROID_SDK: 33
           BUILD_ANDROID_NDK: 25.2.9519653
 
