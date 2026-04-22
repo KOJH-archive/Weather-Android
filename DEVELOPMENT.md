@@ -65,6 +65,7 @@ w_data, air_data = await asyncio.gather(
 2. **앱 크래시 (Crash)**: API 호출 결과가 `None`일 때의 예외 처리가 부족하면 앱이 종료됨. 항상 `if data:` 조건문으로 방어 코드를 작성할 것.
 3. **HTTP 통신 오류**: 안드로이드 9 이상에서는 보안상 HTTPS만 허용함. `pyproject.toml`의 `usesCleartextTraffic` 설정 확인.
 4. **라이브러리 임포트 오류 및 API 변경**: `flet-geolocator`는 `PermissionStatus` 클래스를 제공하지 않을 수 있습니다. `gl.request_permission()`의 반환값인 문자열(`"granted"`, `"denied"` 등)을 직접 비교하여 처리해야 합니다. 또한 임포트 시 반드시 언더바(`_`)를 포함한 `flet_geolocator`를 사용하세요.
+5. **아이콘 명칭 변경 (Material Design 3)**: Flet v0.25.0 이후 Material Design 3가 기본 테마가 되면서 아이콘 명칭 체계가 바뀌었습니다. 기존의 `OUTLINE` 접미사는 모두 `OUTLINED`로 변경되었으므로 주의가 필요합니다. (예: `INFO_OUTLINE` -> `INFO_OUTLINED`)
 
 ---
 
