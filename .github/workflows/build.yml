@@ -23,6 +23,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
       - name: Install Linux Dependencies
         run: |
           sudo apt-get update
@@ -36,7 +41,7 @@ jobs:
       - name: Build APK with Flet
         run: |
           export GRADLE_OPTS="-Xmx2048m -Dorg.gradle.daemon=false"
-          flet build apk -vv
+          flet build apk -vv --yes
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
