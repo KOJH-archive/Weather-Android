@@ -24,4 +24,4 @@ adaptive_icon_background = "#000000"
 
 [tool.flet.android.manifest_application]
 # HTTP 평문 통신 허용 (공공데이터포털 API가 http 사용)
-usesCleartextTraffic = "true"
+usesCleartextTraffic = true

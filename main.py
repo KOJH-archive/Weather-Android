@@ -3,6 +3,7 @@ from flet.geolocator import Geolocator, PermissionStatus
 import requests
 import datetime
 import math
+import asyncio
 
 KMA_API_KEY = "15e5470c1c9af84143de1f691a1621d5786beb1fb07f3e3990f912ce044723a9"
 AIR_KOREA_API_KEY = "15e5470c1c9af84143de1f691a1621d5786beb1fb07f3e3990f912ce044723a9"
@@ -41,7 +42,7 @@ def get_grid_xy(lat, lon):
     theta *= sn
     nx = math.floor(ra * math.sin(theta) + XO + 0.5)
     ny = math.floor(ro - ra * math.cos(theta) + YO + 0.5)
-    return nx, ny
+    return int(nx), int(ny)
 
 # --- DATA FETCHING (requests ONLY) ---
 def fetch_kma_short(nx, ny):
@@ -246,9 +247,11 @@ async def main(page: ft.Page):
             status_text.value = "날씨 정보 조회 중..."
             page.update()
 
-            w_data = fetch_kma_short(nx, ny)
-            air_data = fetch_air_quality() # Default: Seoul
-            uv_data = fetch_uv_index()   # Default: Seoul region
+            w_data, air_data, uv_data = await asyncio.gather(
+                asyncio.to_thread(fetch_kma_short, nx, ny),
+                asyncio.to_thread(fetch_air_quality),
+                asyncio.to_thread(fetch_uv_index)
+            )
             
             if w_data:
                 temp = w_data.get("TMP", "--")
@@ -284,6 +287,9 @@ async def main(page: ft.Page):
                         t_val = int(temp) - (i + 1)
                         ctrl.content.controls[2].value = f"{t_val}°"
                     except: ctrl.content.controls[2].value = "--°"
+            else:
+                status_text.value = "기상청 통신 지연. 다시 시도해주세요."
+                weather_desc.value = "수신 실패"
             
             if air_data:
                 air_pm10.value = f"{air_data.get('pm10Value', '--')}㎍"
