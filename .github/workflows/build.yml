@@ -47,4 +47,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: weather-insight-apk
-          path: build/apk/app-release.apk
+          path: build/apk/*.apk
