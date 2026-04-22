@@ -32,8 +32,6 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # Clean old build data to fix macro errors
-          buildozer android clean
           # We'll use the 'yes' command to accept licenses.
           yes | buildozer android debug
         env:
