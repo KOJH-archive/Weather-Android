@@ -7,7 +7,6 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # (list) Application requirements
-# Added requirements for Flet stability
 requirements = python3, flet==0.21.0, flet-geolocator, requests, pyjnius
 
 # (list) Permissions

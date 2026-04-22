@@ -1,8 +1,8 @@
-name: Android Build
+name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -10,40 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev automake autopoint gettext
-        pip install --upgrade pip
-        pip install buildozer cython==0.29.33
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libffi-dev python3-dev
+          pip install --upgrade pip
+          pip install buildozer flet
 
-    - name: Build with Buildozer
-      run: |
-        # Ensure Android SDK licenses are accepted automatically
-        mkdir -p ~/.android && touch ~/.android/repositories.cfg
-        
-        # 1. Trigger SDK download and setup
-        buildozer android sdk
-        
-        # 2. Find and accept licenses explicitly
-        # We find all sdkmanager instances and pipe 'yes' to --licenses
-        find ~/.buildozer/android/platform/ -name "sdkmanager" -exec bash -c 'yes | {} --licenses' \; || true
-        
-        # 3. Final build with 'yes' pipe to handle any remaining prompts
-        yes | buildozer android debug
-      env:
-        BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
-        BUILDOZER_WARN_ON_ROOT: 1
+      - name: Build with Buildozer
+        run: |
+          # Buildozer needs a local SDK/NDK setup which can be slow. 
+          # Using a dedicated action might be faster, but this is the transparent way.
+          # We'll use the 'yes' command to accept licenses.
+          yes | buildozer android debug
+        env:
+          # Buildozer needs several environment variables and tools
+          # Some might be pre-installed on ubuntu-latest
+          BUILD_ANDROID_SDK: 33
+          BUILD_ANDROID_NDK: 25.2.9519653
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: package
-        path: bin/*.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: weather-insight-apk
+          path: bin/*.apk
