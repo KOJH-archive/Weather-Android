@@ -162,7 +162,7 @@ def get_ai_summary(w_data, air_data=None):
 
 # --- UI COMPONENTS ---
 class PremiumCard(ft.Container):
-    def __init__(self, title, content, icon=ft.icons.INFO_OUTLINE):
+    def __init__(self, title, content, icon=ft.icons.INFO_OUTLINED):
         super().__init__()
         self.padding = 20
         self.border_radius = 24
