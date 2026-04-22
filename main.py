@@ -1,5 +1,5 @@
 import flet as ft
-from flet_geolocator import Geolocator, PermissionStatus
+import flet_geolocator as fg
 import requests
 import datetime
 import math
@@ -228,7 +228,7 @@ async def main(page: ft.Page):
     # Monthly Outlook
     monthly_outlook = ft.Text("데이터 업데이트 시 중장기 전망이 표시됩니다.", size=13, color=ft.colors.WHITE70)
 
-    gl = Geolocator()
+    gl = fg.Geolocator()
     page.overlay.append(gl)
 
     async def update_data(e):
@@ -237,10 +237,10 @@ async def main(page: ft.Page):
         page.update()
 
         ps = await gl.get_permission_status()
-        if ps != PermissionStatus.GRANTED:
+        if ps != fg.PermissionStatus.GRANTED:
             ps = await gl.request_permission()
         
-        if ps == PermissionStatus.GRANTED:
+        if ps == fg.PermissionStatus.GRANTED:
             pos = await gl.get_current_position()
             nx, ny = get_grid_xy(pos.latitude, pos.longitude)
             
