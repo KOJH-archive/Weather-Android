@@ -351,7 +351,7 @@ async def main(page: ft.Page):
             ft.Divider(height=10, color=ft.colors.TRANSPARENT),
             ft.Text("7일 트렌드", size=12, color=ft.colors.WHITE38),
             forecast_row
-        ]), icon=ft.icons.CLOUD_QUEUE_ROUNDED),
+        ]), icon=ft.icons.CLOUD_OUTLINED),
 
         # Mid-term Outlook
         PremiumCard("중장기 전망 (상/중/하순)", ft.Column([monthly_outlook]), icon=ft.icons.EVENT_REPEAT_ROUNDED),
@@ -365,7 +365,7 @@ async def main(page: ft.Page):
         ], alignment=ft.MainAxisAlignment.SPACE_AROUND), icon=ft.icons.LEAF_ROUNDED),
 
         # Lifestyle
-        PremiumCard("데일리 생활 수칙", idx_row, icon=ft.icons.LIGHTBULB_OUTLINE_ROUNDED),
+        PremiumCard("데일리 생활 수칙", idx_row, icon=ft.icons.LIGHTBULB_OUTLINED_ROUNDED),
         
         ft.Text("Powered by KMA Weather Service", size=10, color=ft.colors.WHITE10, text_align="center", width=float("inf")),
     ], scroll=ft.ScrollMode.ADAPTIVE, expand=True)
