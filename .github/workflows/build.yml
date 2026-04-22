@@ -28,6 +28,15 @@ jobs:
       run: |
         # Ensure Android SDK licenses are accepted automatically
         mkdir -p ~/.android && touch ~/.android/repositories.cfg
+        
+        # 1. Trigger SDK download and setup
+        buildozer android sdk
+        
+        # 2. Find and accept licenses explicitly
+        # We find all sdkmanager instances and pipe 'yes' to --licenses
+        find ~/.buildozer/android/platform/ -name "sdkmanager" -exec bash -c 'yes | {} --licenses' \; || true
+        
+        # 3. Final build with 'yes' pipe to handle any remaining prompts
         yes | buildozer android debug
       env:
         BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
