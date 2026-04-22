@@ -26,7 +26,9 @@ jobs:
 
     - name: Build with Buildozer
       run: |
-        buildozer android debug
+        # Ensure Android SDK licenses are accepted automatically
+        mkdir -p ~/.android && touch ~/.android/repositories.cfg
+        yes | buildozer android debug
       env:
         BUILDOZER_ALLOW_ORG_NAME_AS_PACKAGE_NAME: 1
         BUILDOZER_WARN_ON_ROOT: 1

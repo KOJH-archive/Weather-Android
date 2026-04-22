@@ -16,7 +16,7 @@ android.permissions = ACCESS_FINE_LOCATION, INTERNET
 # (int) Android API to use
 android.api = 33
 android.minapi = 21
-android.sdk = 33
+# android.sdk = 33
 
 # (str) Supported orientation
 orientation = portrait
