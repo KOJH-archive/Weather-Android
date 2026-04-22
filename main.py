@@ -1,5 +1,5 @@
 import flet as ft
-from flet.geolocator import Geolocator, PermissionStatus
+from flet_geolocator import Geolocator, PermissionStatus
 import requests
 import datetime
 import math
