@@ -236,11 +236,10 @@ async def main(page: ft.Page):
         status_text.value = "위치 확인 중..."
         page.update()
 
-        ps = await gl.get_permission_status()
-        if ps != fg.PermissionStatus.GRANTED:
-            ps = await gl.request_permission()
+        # flet_geolocator의 request_permission()은 문자열을 반환함
+        ps = await gl.request_permission()
         
-        if ps == fg.PermissionStatus.GRANTED:
+        if ps in ("granted", "grantedAlways", "grantedWhenInUse"):
             pos = await gl.get_current_position()
             nx, ny = get_grid_xy(pos.latitude, pos.longitude)
             
