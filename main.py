@@ -3,7 +3,6 @@ from flet.geolocator import Geolocator, PermissionStatus
 import requests
 import datetime
 import math
-import json
 
 KMA_API_KEY = "15e5470c1c9af84143de1f691a1621d5786beb1fb07f3e3990f912ce044723a9"
 AIR_KOREA_API_KEY = "15e5470c1c9af84143de1f691a1621d5786beb1fb07f3e3990f912ce044723a9"
@@ -132,10 +131,14 @@ def calculate_life_indices(temp, humid, wind):
         t, h, v = float(temp), float(humid), float(wind)
         # 불쾌지수
         di = 0.81 * t + 0.01 * h * (0.99 * t - 14.3) + 46.3
-        # 체감온도 (단순화 모델: Steadman)
-        st = t if t > 10 else 13.12 + 0.6215 * t - 11.37 * (v * 3.6)**0.16 + 0.3965 * t * (v * 3.6)**0.16
+        # 체감온도 (Steadman 모델): 기온 10도 초과 또는 풍속 0이면 실제 기온 반환
+        if t > 10 or v == 0:
+            st = t
+        else:
+            st = 13.12 + 0.6215 * t - 11.37 * (v * 3.6) ** 0.16 + 0.3965 * t * (v * 3.6) ** 0.16
         return round(di, 1), round(st, 1)
-    except: return "--", "--"
+    except:
+        return "--", "--"
 
 
 
@@ -264,8 +267,15 @@ async def main(page: ft.Page):
                 weather_desc.value = sky
                 
                 idx_row.controls[0].controls[1].value = "추천" if pty == "0" else "대기"
-                idx_row.controls[1].controls[1].value = "가능" if float(wind) < 5 else "불가"
-                idx_row.controls[2].controls[1].value = "양호" if float(humid) < 60 else "실내"
+                # 안전한 float 변환으로 "--" 등 비정상 값 방어
+                try:
+                    idx_row.controls[1].controls[1].value = "가능" if float(wind) < 5 else "불가"
+                except (ValueError, TypeError):
+                    idx_row.controls[1].controls[1].value = "--"
+                try:
+                    idx_row.controls[2].controls[1].value = "양호" if float(humid) < 60 else "실내"
+                except (ValueError, TypeError):
+                    idx_row.controls[2].controls[1].value = "--"
 
                 # Update 7-day and Monthly
                 monthly_outlook.value = f"{datetime.datetime.now().month}월 하순: 기온은 평년보다 높겠고, 강수량은 적을 전망입니다."
@@ -280,9 +290,10 @@ async def main(page: ft.Page):
                 air_pm25.value = f"{air_data.get('pm25Value', '--')}㎍"
             
             if uv_data:
-                uv_val.value = uv_data
+                uv_val.value = str(uv_data)
 
-            ai_summary.value = get_ai_summary(w_data, air_data)
+            # w_data가 None이어도 안전하게 호출
+            ai_summary.value = get_ai_summary(w_data or {}, air_data)
             
             status_text.value = f"업데이트 완료: {datetime.datetime.now().strftime('%H:%M:%S')}"
         else:
@@ -339,10 +350,7 @@ async def main(page: ft.Page):
 
         # Mid-term Outlook
         PremiumCard("중장기 전망 (상/중/하순)", ft.Column([monthly_outlook]), icon=ft.icons.EVENT_REPEAT_ROUNDED),
-        
 
-        
-        # Lifestyle
         # Environment & Indices
         PremiumCard("대기 환경 및 생활 지표", ft.Row([
             ft.Column([ft.Text("미세", size=10, color=ft.colors.WHITE38), air_pm10], horizontal_alignment="center"),
