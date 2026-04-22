@@ -26,12 +26,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libsqlite3-dev libffi-dev libssl-dev cmake automake libtool
+          sudo apt-get install -y build-essential git ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev libsqlite3-dev libffi-dev libssl-dev cmake autoconf automake libtool pkg-config unzip zip
           pip install --upgrade pip
           pip install buildozer cython==0.29.37 flet
 
       - name: Build with Buildozer
         run: |
+          # Clean old build data to fix macro errors
+          buildozer android clean
           # We'll use the 'yes' command to accept licenses.
           yes | buildozer android debug
         env:
