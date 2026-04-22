@@ -64,6 +64,7 @@ w_data, air_data = await asyncio.gather(
 1. **빌드 중 EOFError**: `flet build`가 SDK 설치를 물어볼 때 발생함. 반드시 `--yes` 플래그를 사용할 것.
 2. **앱 크래시 (Crash)**: API 호출 결과가 `None`일 때의 예외 처리가 부족하면 앱이 종료됨. 항상 `if data:` 조건문으로 방어 코드를 작성할 것.
 3. **HTTP 통신 오류**: 안드로이드 9 이상에서는 보안상 HTTPS만 허용함. `pyproject.toml`의 `usesCleartextTraffic` 설정 확인.
+4. **라이브러리 임포트 오류 (ModuleNotFoundError)**: `flet-geolocator`와 같은 외부 플러그인은 패키지명과 임포트명이 다를 수 있음. 반드시 `from flet_geolocator import ...`와 같이 언더바(`_`)를 포함한 정확한 모듈명을 사용할 것.
 
 ---
 
