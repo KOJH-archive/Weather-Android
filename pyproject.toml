@@ -5,7 +5,8 @@ description = "실시간 날씨 및 생활 환경 정보 대시보드"
 dependencies = [
     "flet",
     "flet-geolocator",
-    "requests",
+    "httpx",
+    "python-dotenv",
 ]
 
 [tool.flet]
