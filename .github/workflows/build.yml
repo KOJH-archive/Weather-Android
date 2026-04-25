@@ -38,6 +38,10 @@ jobs:
           pip install --upgrade pip
           pip install flet httpx python-dotenv
 
+      - name: Create .env file for API Key
+        run: |
+          echo "DATA_GO_KR_API_KEY=${{ secrets.DATA_GO_KR_API_KEY }}" > .env
+
       - name: Build APK with Flet
         run: |
           export GRADLE_OPTS="-Xmx2048m -Dorg.gradle.daemon=false"

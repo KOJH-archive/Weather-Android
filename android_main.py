@@ -67,7 +67,7 @@ async def fetch_kma_weather(nx, ny):
                 base_time = f"{t:02d}00"
                 break
     
-    url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
+    url = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
     params = {
         "serviceKey": DATA_GO_KR_API_KEY,
         "numOfRows": "200",
@@ -89,7 +89,7 @@ async def fetch_kma_weather(nx, ny):
         except: return None
 
 async def fetch_air_quality(city="서울"):
-    url = "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty"
+    url = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty"
     params = {
         "serviceKey": DATA_GO_KR_API_KEY,
         "returnType": "json",
