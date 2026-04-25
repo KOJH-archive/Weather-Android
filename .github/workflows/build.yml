@@ -36,7 +36,7 @@ jobs:
       - name: Install Python Dependencies
         run: |
           pip install --upgrade pip
-          pip install flet httpx python-dotenv flet-geolocator
+          pip install flet httpx python-dotenv
 
       - name: Build APK with Flet
         run: |

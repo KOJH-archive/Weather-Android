@@ -104,6 +104,19 @@ async def fetch_air_quality(city="서울"):
             return {"pm10": item["pm10Value"], "grade": item["khaiGrade"]}
         except: return {"pm10": "--", "grade": "--"}
 
+async def fetch_location_by_ip():
+    # IP를 통해 사용자의 대략적인 위도/경도를 가져오는 무료 API (권한 필요 없음)
+    url = "http://ip-api.com/json/"
+    async with httpx.AsyncClient() as client:
+        try:
+            res = await client.get(url, timeout=5)
+            data = res.json()
+            if data["status"] == "success":
+                return data["lat"], data["lon"], data.get("city", "알 수 없음")
+        except:
+            pass
+    return 37.5665, 126.9780, "Seoul" # 실패 시 기본값 (서울)
+
 # --- ON-DEVICE AI (GEMINI NANO) WRAPPER ---
 async def get_on_device_briefing(weather_data, air_data, is_android=False):
     # 갤럭시 S24 등 안드로이드 AICore 연동 시뮬레이션
@@ -133,15 +146,8 @@ async def main(page: ft.Page):
         page.window.height = 800
         page.window.resizable = False
     
-    # 모바일용 Geolocator (안드로이드/iOS에서만 활성화)
-    gl = None
-    if page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]:
-        try:
-            import flet_geolocator as fg
-            gl = fg.Geolocator()
-            page.overlay.append(gl)
-        except ImportError:
-            pass
+    # 네이티브 GPS(flet-geolocator)는 flet build 환경에서 Unknown control 에러를 유발하므로 제거합니다.
+    # 대신 IP 기반 위치 추적(fetch_location_by_ip)을 사용합니다.
 
     # Assets (Flet 공식 에셋 폴더 연동 방식 사용)
     # 안드로이드에서는 os.path 절대 경로가 작동하지 않으므로 ft.run(assets_dir)과 파일명만 사용해야 합니다.
@@ -178,24 +184,16 @@ async def main(page: ft.Page):
         page.update()
 
         try:
-            # 1. GPS 위치 획득 (모바일 전용)
-            if gl:
-                perm = await gl.request_permission()
-                if perm in ["granted", "grantedAlways", "grantedWhenInUse"]:
-                    pos = await gl.get_current_position()
-                    lat, lon = pos.latitude, pos.longitude
-                    nx, ny = dfs_xy_conv(lat, lon)
-                    location_text.value = f"현재 위치 ({lat:.2f}, {lon:.2f})"
-                else:
-                    nx, ny = dfs_xy_conv(37.5665, 126.9780)
-                    location_text.value = "위치 권한 필요 (서울 기준)"
-            else:
-                # 데스크톱/웹 등 GPS 미지원 환경
-                nx, ny = dfs_xy_conv(37.5665, 126.9780)
-                location_text.value = "데스크톱 모드 (서울 기준)"
+            # 1. 위치 획득 (IP 기반 - 권한 충돌 및 빨간불 에러 없음)
+            lat, lon, city_name = await fetch_location_by_ip()
+            nx, ny = dfs_xy_conv(lat, lon)
+            
+            # 한글 도시명 변환 (간단한 매핑)
+            city_kr = "서울" if "Seoul" in city_name else "부산" if "Busan" in city_name else "인천" if "Incheon" in city_name else city_name
+            location_text.value = f"현재 위치 ({city_kr})"
             
             # 2. 데이터 Fetch
-            w, a = await asyncio.gather(fetch_kma_weather(nx, ny), fetch_air_quality("서울"))
+            w, a = await asyncio.gather(fetch_kma_weather(nx, ny), fetch_air_quality(city_kr if city_kr in ["서울","부산","인천","대구","광주","대전","울산","경기","강원","충북","충남","전북","전남","경북","경남","제주","세종"] else "서울"))
             
             if w:
                 temp_text.value = f"{w.get('TMP')}°"
