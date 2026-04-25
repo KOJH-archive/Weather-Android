@@ -7,11 +7,7 @@ import asyncio
 from dotenv import load_dotenv
 
 # 안드로이드 네이티브 연동을 위한 모듈 (빌드 시 필요)
-try:
-    from jnius import autoclass
-    ANDROID_MODE = True
-except ImportError:
-    ANDROID_MODE = False
+# jnius는 런타임에 직접 import 하도록 변경하여 PC 충돌 방지
 
 # --- CONFIGURATION ---
 load_dotenv()
@@ -109,16 +105,17 @@ async def fetch_air_quality(city="서울"):
         except: return {"pm10": "--", "grade": "--"}
 
 # --- ON-DEVICE AI (GEMINI NANO) WRAPPER ---
-async def get_on_device_briefing(weather_data, air_data):
+async def get_on_device_briefing(weather_data, air_data, is_android=False):
     # 갤럭시 S24 등 안드로이드 AICore 연동 시뮬레이션
-    if ANDROID_MODE:
+    if is_android:
         try:
+            from jnius import autoclass
             # 실제 안드로이드 빌드 시 AICore 호출 로직이 들어갈 자리
             # Context = autoclass('android.content.Context')
             # AICore = autoclass('com.google.android.gms.ai.AiCore')
             return "S24 AI가 실시간 데이터를 분석 중입니다: " + f"기온 {weather_data.get('TMP')}도, 미세먼지 {air_data.get('pm10')}으로 야외 활동에 적합한 날씨입니다."
-        except:
-            pass
+        except Exception as e:
+            print("AICore 연동 실패:", e)
     
     # PC 테스트 또는 Fallback 로직
     return f"현재 기온 {weather_data.get('TMP')}°C이며, {air_data.get('pm10')} 수준의 미세먼지가 관측됩니다. 쾌적한 하루 보내세요."
@@ -127,10 +124,14 @@ async def main(page: ft.Page):
     page.title = "Weather Insight Mobile"
     page.padding = 0
     page.bgcolor = "#000000"
-    page.window.width = 400
-    page.window.height = 800
-    page.window.resizable = False
     page.theme_mode = "dark"
+    
+    # 모바일 환경에서는 window 객체 접근 시 오류가 날 수 있으므로 데스크톱만 설정
+    is_mobile = page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]
+    if not is_mobile:
+        page.window.width = 400
+        page.window.height = 800
+        page.window.resizable = False
     
     # 모바일용 Geolocator (안드로이드/iOS에서만 활성화)
     gl = None
@@ -142,9 +143,9 @@ async def main(page: ft.Page):
         except ImportError:
             pass
 
-    # Assets
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    BG_IMAGE_PATH = os.path.join(current_dir, "assets", "weather_bg.png")
+    # Assets (Flet 공식 에셋 폴더 연동 방식 사용)
+    # 안드로이드에서는 os.path 절대 경로가 작동하지 않으므로 ft.run(assets_dir)과 파일명만 사용해야 합니다.
+    BG_IMAGE_PATH = "weather_bg.png"
 
     # --- UI STATE ---
     weather_icon = ft.Icon(ft.Icons.WB_SUNNY, size=100, color="amber")
@@ -207,7 +208,7 @@ async def main(page: ft.Page):
                 pm10_val.value = a.get("pm10")
                 
                 # 3. 온디바이스 AI 브리핑
-                ai_content.value = await get_on_device_briefing(w, a)
+                ai_content.value = await get_on_device_briefing(w, a, is_mobile)
             else:
                 sky_text.value = "연결 오류"
         except Exception as ex:
@@ -218,7 +219,7 @@ async def main(page: ft.Page):
 
     # --- MOBILE LAYOUT (SINGLE COLUMN) ---
     content_stack = ft.Stack([
-        ft.Image(src=BG_IMAGE_PATH, width=page.width, height=page.window.height if page.window else 800, fit=ft.BoxFit.COVER),
+        ft.Image(src=BG_IMAGE_PATH, width=page.width, height=800, fit=ft.BoxFit.COVER),
         ft.Container(expand=True, bgcolor="black45"), # Overlay
         
         ft.Column([
@@ -274,4 +275,5 @@ async def main(page: ft.Page):
     await update_weather()
 
 if __name__ == "__main__":
-    ft.run(main)
+    # 안드로이드 에셋 로드를 위해 assets_dir="assets" 필수 추가
+    ft.run(main, assets_dir="assets")
