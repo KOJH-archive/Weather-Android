@@ -40,7 +40,7 @@ jobs:
 
       - name: Create .env file for API Key
         run: |
-          echo "DATA_GO_KR_API_KEY=${{ secrets.DATA_GO_KR_API_KEY }}" > .env
+          echo "DATA_GO_KR_API_KEY=15e5470c1c9af84143de1f691a1621d5786beb1fb07f3e3990f912ce044723a9" > .env
 
       - name: Build APK with Flet
         run: |
