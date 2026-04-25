@@ -1,106 +1,133 @@
-# 📱 Flet 기반 안드로이드 하이브리드 앱 개발 명세서 (Best Practices)
+# 🚀 Flet 기반 안드로이드 날씨 앱: Zero-to-Hero 개발 마스터 가이드
 
-본 문서는 파이썬(Flet)을 활용하여 안드로이드 모바일 어플리케이션을 개발하고 배포하는 과정에서 겪은 수많은 트러블슈팅과 핵심 아키텍처를 정리한 **실무 지침서**입니다. 향후 유사한 어플리케이션을 개발할 때 복사-붙여넣기 및 가이드로 활용할 수 있습니다.
+본 문서는 파이썬(Flet)을 활용하여 "아무것도 없는 상태에서 완벽하게 동작하는 안드로이드 앱"을 만들기까지의 **A to Z 개발 과정과 모든 트러블슈팅 노하우**를 담은 궁극의 마스터 명세서입니다. 
+향후 AI에게 이 문서만 학습시켜도 단 한 번의 에러 없이 완벽한 앱을 찍어낼 수 있도록 상세하게 기록되었습니다.
 
 ---
 
-## 1. 아키텍처 및 통신 최적화
+## 🛠️ Step 1. 프로젝트 초기 환경 셋팅 (Project Setup)
 
-### 1.1 동기(Sync) vs 비동기(Async) 통신
-모바일 환경에서는 0.1초의 멈춤(프리징)도 치명적인 사용자 경험 저하를 낳습니다.
-- **Bad**: `requests` (호출하는 동안 UI가 멈춤)
-- **Good**: `httpx.AsyncClient` (데이터를 기다리는 동안 UI 애니메이션이 부드럽게 동작)
-```python
-import httpx
-import asyncio
+가장 흔한 에러는 환경 설정 단계에서 발생합니다.
 
-async def fetch_data():
-    async with httpx.AsyncClient() as client:
-        res = await client.get("https://api.example.com/data")
-        return res.json()
+### 1.1 의존성 관리 및 패키지 설치
+무겁고 충돌이 잦은 패키지 대신, 가장 가볍고 빠른 도구만 사용합니다.
+- `flet`: 앱 UI 및 모바일 빌드 엔진
+- `httpx`: 모바일 UI 프리징(멈춤)을 막기 위한 **비동기 전용 HTTP 라이브러리** (`requests` 사용 절대 금지)
+- `python-dotenv`: 로컬 테스트 시 API 키 보안을 위한 환경변수 관리
+
+### 1.2 `pyproject.toml` 구성 (안드로이드 빌드용)
+Flet 빌드 엔진이 모바일 앱을 만들 때 참조하는 핵심 파일입니다. 권한과 시작 파일을 명확히 해야 합니다.
+```toml
+[tool.flet]
+product = "Weather Insight Hub"
+org = "org.insight"
+module-name = "android_main" # 중요: 여러 파일이 섞여 있을 때 빌드할 대상을 정확히 강제합니다.
+
+[tool.flet.android]
+usesCleartextTraffic = true # HTTP 통신 차단 해제 (단, 가급적 HTTPS 사용 권장)
+
+[tool.flet.android.permissions]
+# GPS 권한 대신 IP 기반 위치 조회를 사용하면 권한 설정이 필요 없어 앱이 매우 가벼워집니다.
+INTERNET = true
 ```
 
-### 1.2 HTTP 차단 정책 (안드로이드 9 이상)
-안드로이드 9(Pie)부터는 보안상 일반 HTTP 통신이 기본적으로 차단됩니다.
-- 가급적 모든 API 주소를 `https://`로 변경하여 사용하세요.
-- 부득이하게 HTTP를 써야 한다면 `pyproject.toml`에 `usesCleartextTraffic = true`를 반드시 설정해야 합니다.
-
 ---
 
-## 2. 안드로이드 모바일 UI/UX 특수성
+## 🎨 Step 2. 크로스 플랫폼 UI 설계 (UI/UX Architecture)
 
-### 2.1 절대 경로(`os.path`) 사용 금지
-PC에서는 `os.path.join(__file__)` 방식이 통하지만, 안드로이드 APK 내부로 패키징되면 경로 구조가 완전히 달라져 앱이 하얗게 멈추는 에러가 발생합니다.
-- **해결책**: Flet의 공식 에셋 폴더 지정 방식을 사용합니다.
+안드로이드(모바일)와 PC(데스크톱)의 환경 차이를 극복하는 코드를 작성해야 합니다.
+
+### 2.1 절대 경로(`os.path`) 사용 금지 및 에셋 로드
+안드로이드 APK 내부에서는 `os.path.abspath(__file__)` 방식이 통하지 않아 앱이 하얗게 멈춥니다.
+**반드시 Flet의 공식 에셋 폴더 연동 방식을 사용해야 합니다.**
 ```python
-# 코드 내부 (파일 이름만 사용)
+# Bad: 안드로이드에서 파일 못 찾음 에러 발생
+# BG_IMAGE_PATH = os.path.join(current_dir, "assets", "weather_bg.png")
+# ft.Image(src=BG_IMAGE_PATH)
+
+# Good: 파일명만 적어주고, ft.run()에서 폴더를 명시
 ft.Image(src="weather_bg.png")
 
-# 실행 부 (assets_dir 명시 필수)
 if __name__ == "__main__":
-    ft.run(main, assets_dir="assets")
+    ft.run(main, assets_dir="assets") # 필수!
 ```
 
-### 2.2 모바일 Window 속성 접근 금지
-안드로이드는 전체화면 기반이므로 `page.window` 객체에 접근하면 에러(Crash)가 발생하여 앱이 튕깁니다.
-- **해결책**: 플랫폼 감지를 통해 데스크톱에서만 창 크기를 조절하도록 보호합니다.
+### 2.2 모바일 Window 객체 접근 예외 처리
+안드로이드 기기는 무조건 전체 화면이므로 `page.window.width`를 건드리면 앱이 즉시 강제 종료됩니다.
 ```python
+# 플랫폼 감지 로직으로 PC 환경에서만 창 크기 조절
 is_mobile = page.platform in [ft.PagePlatform.ANDROID, ft.PagePlatform.IOS]
 if not is_mobile:
     page.window.width = 400
     page.window.height = 800
+    page.window.resizable = False
 ```
 
 ---
 
-## 3. 하드웨어 네이티브 기능 (GPS 등) 다루기
+## 📡 Step 3. 데이터 통신 및 네이티브 하드웨어 (Core Logic)
 
-### 3.1 서드파티 네이티브 플러그인의 한계 (Unknown Control)
-Flet에서 파이썬 모듈(`flet-geolocator` 등)을 추가하더라도, **기반이 되는 Flutter의 네이티브(Dart/Java) 코드가 자동 병합되지 않아 화면에 빨간색 에러 상자(Unknown Control)가 뜨는 현상**이 자주 발생합니다.
-- **권장 해결책**: 네이티브 권한이 억지로 필요한 플러그인보다는, **IP 기반 위치 추적 API**(`https://ip-api.com/` 등)를 사용하여 권한 승인 절차를 없애고 앱을 가볍게 유지하는 것이 훨씬 안정적입니다.
-
-### 3.2 JNI(네이티브 브릿지) 충돌 방지
-안드로이드 기기 고유의 기능(예: S24 온디바이스 AI)을 호출하기 위해 `jnius`를 사용할 때, 파일 최상단에 `import`를 걸어두면 PC에서 코드를 테스트할 때 충돌이 납니다.
-- **해결책**: 플랫폼 검사 후, 함수 내부에서 지연(Lazy) 임포트 하세요.
+### 3.1 동기(Sync) 통신 배제 -> 100% 비동기화
+앱에서 "데이터 로딩 중..." 애니메이션이 부드럽게 돌아가려면 `asyncio`와 `httpx`가 필수입니다.
 ```python
-async def run_android_ai(is_android):
-    if is_android:
+async def fetch_weather_data():
+    async with httpx.AsyncClient() as client:
+        # 안드로이드 네트워크 차단 정책(보안)을 피하기 위해 반드시 https:// 사용
+        res = await client.get("https://apis.data.go.kr/...", timeout=10)
+        return res.json()
+```
+
+### 3.2 GPS 센서 연동의 함정 (Unknown Control 해결)
+`flet-geolocator` 같은 서드파티 네이티브 플러그인은 Flet 빌드 시 네이티브 코드(Dart/Java)가 병합되지 않아 **빨간 화면(Unknown Control) 에러**를 유발할 확률이 높습니다.
+- **실무 해결책**: 네이티브 권한을 우회하는 **IP 기반 실시간 위치 추적 API**(`https://ip-api.com/json/` 등)를 사용하여 권한 팝업 없이 0.1초 만에 위경도를 가져오는 것이 모바일 앱 구동 안정성에 100배 유리합니다.
+
+### 3.3 안드로이드 네이티브(JNI) 라이브러리 충돌 방지
+갤럭시 S24 온디바이스 AI(Gemini Nano) 등 안드로이드 전용 네이티브 모듈(`jnius`)을 코드 상단에 Import 하면 PC에서 테스트할 때 무조건 튕깁니다.
+- **해결책**: 플랫폼 검사 후 지연 호출(Lazy Import) 사용.
+```python
+async def run_ai_briefing(is_mobile):
+    if is_mobile:
         from jnius import autoclass
-        # ... 안드로이드 네이티브 호출 ...
+        # 모바일에서만 실행되는 네이티브 코드
 ```
 
 ---
 
-## 4. API 보안 및 깃허브 액션(CI/CD) 자동 배포
+## ☁️ Step 4. 보안 및 CI/CD 자동 배포 (GitHub Actions)
 
-### 4.1 앱 내부 API 키 하드코딩 절대 금지
-소스 코드나 `build.yml`에 API 키를 하드코딩하면, 깃허브 공개 시 누구나 키를 탈취할 수 있으며 리버스 엔지니어링의 표적이 됩니다.
-- 로컬 개발 시에는 `python-dotenv`를 사용하여 `.env` 파일로 키를 숨깁니다.
-- `.env` 파일은 반드시 `.gitignore`에 등록하여 깃허브에 올라가지 않도록 합니다.
+가장 완벽하게 코드를 짰어도, 깃허브 배포 설정이 잘못되면 빈 껍데기 앱이 나옵니다.
 
-### 4.2 GitHub Actions에서 안전하게 API 키 주입하기
-클라우드 서버(GitHub Actions)가 APK를 빌드할 때 빈 키값 때문에 **"연결 오류"**가 나는 것을 방지하려면, 깃허브의 **Secrets** 기능을 활용합니다.
-1. GitHub 레포지토리 Settings -> Secrets -> `DATA_GO_KR_API_KEY` 등록
-2. `build.yml` 내부에 아래 스텝 추가:
+### 4.1 치명적 실수: API 키 하드코딩
+소스코드나 빌드 설정(`build.yml`)에 API 키를 날것(Raw)으로 적으면 해킹의 표적이 됩니다.
+- 코드에서는 반드시 `os.getenv("DATA_GO_KR_API_KEY")`로 불러옵니다.
+- `.env` 파일은 `.gitignore`에 등록하여 깃허브에 절대 올리지 않습니다.
+
+### 4.2 GitHub Actions "연결 오류" 완벽 해결법
+깃허브 서버가 APK를 구울 때 `.env` 파일이 없어서 API 키가 비어버리는 문제("연결 오류" 텍스트 발생)를 막아야 합니다.
+1. 깃허브 레포지토리 Settings -> Secrets -> `DATA_GO_KR_API_KEY` 값 등록
+2. `.github/workflows/build.yml` 내부에 **키 자동 주입 스크립트** 작성:
 ```yaml
+      - name: Install Python Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install flet httpx python-dotenv # 정확한 라이브러리 설치 강제
+
       - name: Create .env file for API Key
+        # Secrets에서 키를 빼내어 일회용 .env 파일을 생성 (보안 완벽 유지)
         run: |
           echo "DATA_GO_KR_API_KEY=${{ secrets.DATA_GO_KR_API_KEY }}" > .env
-```
 
-### 4.3 Flet 빌드 타겟 명확화
-폴더 내에 여러 파이썬 파일(예: `main.py`, `android_main.py`)이 섞여 있으면, 깃허브 빌드 봇이 엉뚱한 파일을 메인으로 잡고 빌드할 수 있습니다.
-- **해결책 1**: 헷갈릴 수 있는 예전 파일(`main.py`)은 이름을 변경하거나 지웁니다.
-- **해결책 2**: `build.yml` 명령어에 타겟을 100% 명확하게 박아넣습니다.
-```bash
-# 옵션을 통해 정확한 엔트리 포인트 강제
-flet build apk --module-name android_main -vv --yes
+      - name: Build APK with Flet
+        # --module-name 옵션을 통해 엉뚱한 파일(main.py)이 빌드되는 것을 원천 차단
+        run: |
+          export GRADLE_OPTS="-Xmx2048m -Dorg.gradle.daemon=false"
+          flet build apk --module-name android_main -vv --yes
 ```
 
 ---
 
-## 5. 결론 (개발 마인드셋)
-모바일 하이브리드 앱 개발은 "PC에서 잘 도니까 폰에서도 잘 돌겠지"라는 가정이 가장 위험합니다. 
-1. **가볍게(Raw)**: 외부 네이티브 플러그인 의존도를 최대한 낮춥니다.
-2. **안전하게(Secure)**: 파일 경로와 API 키 관리는 모바일의 고립된 환경(Sandboxed)을 가정하고 설계합니다.
-3. **비동기(Async)**: 모든 네트워크 통신은 UI를 막지 않도록 논블로킹(Non-blocking)으로 구성합니다.
+## 🎯 최종 학습(프롬프트) 요약 가이드
+이 문서를 기반으로 AI가 다음 앱을 개발할 때 지켜야 할 **3대 절대 규칙**:
+1. **Never Sync**: 모든 UI 업데이트와 네트워크 호출은 `async`/`await`로 짤 것. (`requests` 절대 금지)
+2. **Never Absolute Path**: 안드로이드 에셋 로딩은 무조건 `assets_dir="assets"` 선언 후 파일명만 쓸 것.
+3. **Never Trust Native Plugins**: 검증되지 않은 모바일 센서 플러그인 대신, 웹 기반 REST API(예: IP 기반 위치추적) 우회로를 최우선으로 고려할 것.
