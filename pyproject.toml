@@ -12,6 +12,7 @@ dependencies = [
 [tool.flet]
 product = "Weather Insight Hub"
 org = "org.insight"
+module-name = "android_main"
 
 [tool.flet.android]
 # 안드로이드 빌드 설정
